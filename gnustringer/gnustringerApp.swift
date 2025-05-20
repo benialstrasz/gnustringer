@@ -10,9 +10,11 @@ import SwiftData
 
 @main
 struct gnustringerApp: App {
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            RecentFile.self,
+            RecentDirectory.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -24,9 +26,12 @@ struct gnustringerApp: App {
     }()
 
     var body: some Scene {
-        WindowGroup {
+        MenuBarExtra {
             ContentView()
+                .modelContainer(sharedModelContainer)
+        } label: {
+            Image(systemName: "hat.cap.fill")
         }
-        .modelContainer(sharedModelContainer)
+        .menuBarExtraStyle(.window)
     }
 }

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B197B4CC2DDCB18800401FD7 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = B197B4CB2DDCB18800401FD7 /* LaunchAtLogin */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		B197B4B62DDCA3C900401FD7 /* gnustringer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = gnustringer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B197B4CC2DDCB18800401FD7 /* LaunchAtLogin in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = gnustringer;
 			packageProductDependencies = (
+				B197B4CB2DDCB18800401FD7 /* LaunchAtLogin */,
 			);
 			productName = gnustringer;
 			productReference = B197B4B62DDCA3C900401FD7 /* gnustringer.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = B197B4AD2DDCA3C900401FD7;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B197B4CA2DDCB18800401FD7 /* XCRemoteSwiftPackageReference "LaunchAtLogin-modern" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B197B4B72DDCA3C900401FD7 /* Products */;
 			projectDirPath = "";
@@ -321,6 +330,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B197B4CA2DDCB18800401FD7 /* XCRemoteSwiftPackageReference "LaunchAtLogin-modern" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-modern";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B197B4CB2DDCB18800401FD7 /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B197B4CA2DDCB18800401FD7 /* XCRemoteSwiftPackageReference "LaunchAtLogin-modern" */;
+			productName = LaunchAtLogin;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B197B4AE2DDCA3C900401FD7 /* Project object */;
 }

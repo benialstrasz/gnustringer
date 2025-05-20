@@ -7,53 +7,283 @@
 
 import SwiftUI
 import SwiftData
+import LaunchAtLogin
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @Query(sort: \RecentFile.lastUsed, order: .reverse)
+    private var recentFiles: [RecentFile]
+    @Query(sort: \RecentDirectory.lastUsed, order: .reverse)
+    private var recentDirs: [RecentDirectory]
+    
+    @State private var directories: String = ""
+    @State private var fileName: String = ""
+    
+    @State private var xCol = "2"
+    @State private var xScale = ""
+    
+    @State private var yCol = "5"
+    @State private var yScale = ""
+    
+    @State private var cbCol = ""
+    
+    @State private var styleIndex = 1
+    private let styles = ["nothing", "w l", "w lp"]
+    
+    @State private var longString: Bool = true
+    
+    @State private var result = ""
+    @State private var textHeight: CGFloat = 40
+    
+    @State private var showResultInTextfield: Bool = false
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
+        VStack(alignment: .leading, spacing: 8) {
+            Group {
+                HStack {
+                    TextField("Directories (space-separated)", text: $directories)
+                        .frame(minWidth: 250)
+                    
+                    Menu {
+                        ForEach(recentDirs) { dir in
+                            Button(dir.path) {
+                                if !directories.contains(dir.path) {
+                                    directories = dir.path
+                                }
+                                updateRecentDirectory(path: dir.path)
+                            }
+                        }
+                        Button {
+                            deleteDirectoryItems()
+                        } label: {
+                            Text("🗑️ delete history 🗑️")
+                        }
+
                     } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                        Text("dir history")
+                            .help("Choose from common files")
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                
+                HStack {
+                    TextField("File Name", text: $fileName)
+                        .frame(minWidth: 250)
+                    
+                    Menu {
+                        ForEach(recentFiles) { file in
+                            Button(file.name) {
+                                fileName = file.name
+                                updateRecentFile(named: file.name)
+                            }
+                        }
+                        Button {
+                            deleteFilesItems()
+                        } label: {
+                            Text("🗑️ delete history 🗑️")
+                        }
+
+                    } label: {
+                        Text("Files history")
+                            .help("Choose from common files")
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
+            
+            HStack {
+                TextField("X Col", text: $xCol)
+                TextField("X Scale", text: $xScale)
+            }
+            
+            HStack {
+                TextField("Y Col", text: $yCol)
+                TextField("Y Scale", text: $yScale)
+            }
+            
+            TextField("CB Col (optional)", text: $cbCol)
+            
+            Picker("Plot Style", selection: $styleIndex) {
+                ForEach(0..<styles.count, id: \.self) { index in
+                    Text(styles[index])
+                }
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding(.bottom, 10)
+            
+            HStack() {
+                Spacer()
+                Button("Generate") {
+                    if (!fileName.isEmpty)    { updateRecentFile(named: fileName) }
+                    if (!directories.isEmpty) { updateRecentDirectory(path: directories) }
+                    showResultInTextfield = false
+                    result = generateGnuplotCommand()
+                }
+                
+                Button("Copy") {
+                    let pasteboard = NSPasteboard.general
+                    pasteboard.clearContents()
+                    pasteboard.setString(result, forType: .string)
+                }
+                
+                Toggle("long string", isOn: $longString)
+                    .toggleStyle(.checkbox)
+                
+                Spacer()
+            }
+            
+            if showResultInTextfield {
+                
+                VStack(alignment: .leading) {
+                    TextEditor(text: $result)
+                        .font(.system(size: 11, design: .monospaced))
+                        .frame(height: max(textHeight+100, 40)) // default min height
+                        .padding(4)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.5)))
+                    
+                    // Hidden text to measure height
+                    Text(result.isEmpty ? " " : result)
+                        .font(.system(size: 11, design: .monospaced))
+                        .padding(6)
+                        .frame(width: 300, alignment: .leading)
+                        .background(GeometryReader { geo in
+                            Color.clear
+                                .onAppear {
+                                    textHeight = geo.size.height
+                                }
+                                .onChange(of: result) { _ in
+                                    textHeight = geo.size.height
+                                }
+                        })
+                        .hidden()
+                }
+                .frame(maxWidth: .infinity)
+                
+            } else {
+                ScrollView(.vertical) {
+                    Text(result)
+                        .font(.system(size: 11, design: .monospaced))
+                        .padding(.top, 4)
+                        .onTapGesture(count: 2) {
+                            showResultInTextfield.toggle()
+                        }
+                }
+            }
+            
+            Divider()
+            
+            HStack {
+                Text("🪐 made by Beni")
+                    .font(.caption2)
+//                Text("(v" + currentVersion + ")")
+//                    .font(.caption2)
+//                    .fontWeight(.ultraLight)
+//
+                Spacer()
+                
+                LaunchAtLogin.Toggle()
+
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Image(systemName: "power")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .keyboardShortcut("q")
+            }
+
+        }
+        .padding()
+        .frame(width: 380)
+    }
+    
+    func generateGnuplotCommand() -> String {
+        let dirs = directories.split(separator: " ").map(String.init)
+        
+        // Fallback to 1.0 if empty or invalid
+        let xS = Double(xScale.trimmingCharacters(in: .whitespaces)).flatMap { $0 != 0 ? $0 : nil } ?? 1.0
+        let yS = Double(yScale.trimmingCharacters(in: .whitespaces)).flatMap { $0 != 0 ? $0 : nil } ?? 1.0
+        
+        guard let x = Int(xCol), let y = Int(yCol) else {
+            return "Invalid numeric input."
+        }
+        
+        let hasCB = !cbCol.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let baseArgs = styles[styleIndex]
+        let args = baseArgs + (hasCB && baseArgs != "nothing" ? " pal" : "")
+        
+        let parts = dirs.map { dir in
+            let file = "\(dir)/\(fileName)"
+            
+            let xString = (xS == 1) ? "\(x)" : "($\(x)/\(xS))"
+            let yString = (yS == 1) ? "\(y)" : "($\(y)/\(yS))"
+            let cbString = hasCB ? "\(cbCol)" : ""
+            
+            let withClause = baseArgs == "nothing" ? "" : args
+            return "\"\(file)\" u \(xString):\(yString):\(cbString) \(withClause)".trimmingCharacters(in: .whitespaces)
+        }
+        
+        return "plot " + parts.joined(separator: longString ? ", " : ", \\\n     ")
+    }
+    
+    private func updateRecentFile(named name: String) {
+        if let existing = recentFiles.first(where: { $0.name == name }) {
+            existing.lastUsed = .now
+        } else {
+            let new = RecentFile(name: name)
+            modelContext.insert(new)
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to update recent file: \(error)")
+        }
+    }
+    
+    private func updateRecentDirectory(path: String) {
+        if let existing = recentDirs.first(where: { $0.path == path }) {
+            existing.lastUsed = .now
+        } else {
+            let new = RecentDirectory(path: path)
+            modelContext.insert(new)
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to update recent directory: \(error)")
+        }
+    }
+    
+    func deleteDirectoryItems() {
+        let fetchDescriptor = FetchDescriptor<RecentDirectory>()
+        do {
+            let allItems = try modelContext.fetch(fetchDescriptor)
+            for item in allItems {
+                modelContext.delete(item)
+            }
+            try modelContext.save()
+        } catch {
+            print("Failed to clear history: \(error)")
+        }
+    }
+    
+    func deleteFilesItems() {
+        let fetchDescriptor = FetchDescriptor<RecentFile>()
+        do {
+            let allItems = try modelContext.fetch(fetchDescriptor)
+            for item in allItems {
+                modelContext.delete(item)
+            }
+            try modelContext.save()
+        } catch {
+            print("Failed to clear history: \(error)")
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
-    }
+    
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: RecentFile.self, inMemory: true)
 }

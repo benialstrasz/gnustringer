@@ -9,10 +9,23 @@ import Foundation
 import SwiftData
 
 @Model
-final class Item {
-    var timestamp: Date
-    
-    init(timestamp: Date) {
-        self.timestamp = timestamp
+class RecentFile: Identifiable {
+    @Attribute(.unique) var name: String
+    var lastUsed: Date
+
+    init(name: String, lastUsed: Date = .now) {
+        self.name = name
+        self.lastUsed = lastUsed
+    }
+}
+
+@Model
+class RecentDirectory: Identifiable {
+    @Attribute(.unique) var path: String
+    var lastUsed: Date
+
+    init(path: String, lastUsed: Date = .now) {
+        self.path = path
+        self.lastUsed = lastUsed
     }
 }
