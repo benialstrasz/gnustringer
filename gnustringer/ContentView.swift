@@ -241,10 +241,10 @@ struct ContentView: View {
             
             let xString = (xS == 1) ? "\(x)" : "($\(x)/\(xS))"
             let yString = (yS == 1) ? "\(y)" : "($\(y)/\(yS))"
-            let cbString = hasCB ? "\(cbCol)" : ""
+            let cbString = hasCB ? ":\(cbCol)" : ""
             
             let withClause = baseArgs == "nothing" ? "" : args
-            return "\"\(file)\" u \(xString):\(yString):\(cbString) \(withClause)".trimmingCharacters(in: .whitespaces)
+            return "\"\(file)\" u \(xString):\(yString)\(cbString) \(withClause)".trimmingCharacters(in: .whitespaces)
         }
         
         return "plot " + parts.joined(separator: longString ? ", " : ", \\\n     ")
