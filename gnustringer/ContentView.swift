@@ -19,10 +19,10 @@ struct ContentView: View {
     @State private var directories: String = ""
     @State private var fileName: String = ""
     
-    @State private var xCol = "2"
+    @State private var xCol = ""
     @State private var xScale = ""
     
-    @State private var yCol = "5"
+    @State private var yCol = ""
     @State private var yScale = ""
     
     @State private var cbCol = ""
@@ -36,13 +36,18 @@ struct ContentView: View {
     @State private var textHeight: CGFloat = 40
     
     @State private var showResultInTextfield: Bool = false
-    
+    @State private var autoCopyOnGenerate: Bool = true
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            Image("rainbow")
+//                .resizable()
+//                .frame(height: 50)
+                .padding(.vertical,-10)
             Group {
                 HStack {
                     TextField("Directories (space-separated)", text: $directories)
-                        .frame(minWidth: 250)
+                        .frame(minWidth: 280)
                     
                     Menu {
                         ForEach(recentDirs) { dir in
@@ -57,17 +62,19 @@ struct ContentView: View {
                             deleteDirectoryItems()
                         } label: {
                             Text("🗑️ delete history 🗑️")
+                                .font(.system(.body, design: .monospaced))
                         }
 
                     } label: {
-                        Text("dir history")
+                        Text("...")
+                            .font(.system(.body, design: .monospaced))
                             .help("Choose from common files")
                     }
                 }
                 
                 HStack {
                     TextField("File Name", text: $fileName)
-                        .frame(minWidth: 250)
+                        .frame(minWidth: 280)
                     
                     Menu {
                         ForEach(recentFiles) { file in
@@ -80,10 +87,13 @@ struct ContentView: View {
                             deleteFilesItems()
                         } label: {
                             Text("🗑️ delete history 🗑️")
+                                .font(.system(.body, design: .monospaced))
+
                         }
 
                     } label: {
-                        Text("Files history")
+                        Text("...")
+                            .font(.system(.body, design: .monospaced))
                             .help("Choose from common files")
                     }
                 }
@@ -116,6 +126,11 @@ struct ContentView: View {
                     if (!directories.isEmpty) { updateRecentDirectory(path: directories) }
                     showResultInTextfield = false
                     result = generateGnuplotCommand()
+                    if result != "Invalid numeric input." {
+                        let pasteboard = NSPasteboard.general
+                        pasteboard.clearContents()
+                        pasteboard.setString(result, forType: .string)
+                    }
                 }
                 
                 Button("Copy") {
@@ -167,13 +182,18 @@ struct ContentView: View {
                             showResultInTextfield.toggle()
                         }
                 }
+                .frame(maxWidth: 350)
+                .background(result.isEmpty ? Color.clear : Color.white)
+                .cornerRadius(10)
+                .clipped()
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(result.isEmpty ? 0.0 : 0.3)))
             }
             
             Divider()
             
             HStack {
                 Text("🪐 made by Beni")
-                    .font(.caption2)
+                    .font(.system(.caption, design: .monospaced))
 //                Text("(v" + currentVersion + ")")
 //                    .font(.caption2)
 //                    .fontWeight(.ultraLight)
@@ -181,6 +201,8 @@ struct ContentView: View {
                 Spacer()
                 
                 LaunchAtLogin.Toggle()
+                    .font(.system(.caption, design: .monospaced))
+
 
                 Button {
                     NSApplication.shared.terminate(nil)
@@ -191,8 +213,10 @@ struct ContentView: View {
                 .tint(.red)
                 .keyboardShortcut("q")
             }
+            .padding(.bottom, -8)
 
         }
+        .font(.system(.body, design: .monospaced))
         .padding()
         .frame(width: 380)
     }
