@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import LaunchAtLogin
+import AppKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -152,7 +153,7 @@ struct ContentView: View {
                         .font(.system(size: 11, design: .monospaced))
                         .frame(height: max(textHeight+100, 40)) // default min height
                         .padding(4)
-                        .background(Color.white)
+                        .background(Color(NSColor.windowBackgroundColor))
                         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.5)))
                     
                     // Hidden text to measure height
@@ -165,7 +166,7 @@ struct ContentView: View {
                                 .onAppear {
                                     textHeight = geo.size.height
                                 }
-                                .onChange(of: result) { _ in
+                                .onChange(of: result) {
                                     textHeight = geo.size.height
                                 }
                         })
@@ -183,7 +184,7 @@ struct ContentView: View {
                         }
                 }
                 .frame(maxWidth: 350)
-                .background(result.isEmpty ? Color.clear : Color.white)
+                .background(result.isEmpty ? Color.clear : Color(NSColor.windowBackgroundColor))
                 .cornerRadius(10)
                 .clipped()
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(result.isEmpty ? 0.0 : 0.3)))
@@ -247,6 +248,8 @@ struct ContentView: View {
             return "\"\(file)\" u \(xString):\(yString)\(cbString) \(withClause)".trimmingCharacters(in: .whitespaces)
         }
         
+        print("GENERATED:")
+        print("plot " + parts.joined(separator: longString ? ", " : ", \\\n     "))
         return "plot " + parts.joined(separator: longString ? ", " : ", \\\n     ")
     }
     

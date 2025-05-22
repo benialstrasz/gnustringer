@@ -31,6 +31,8 @@ struct gnustringerApp: App {
                 .modelContainer(sharedModelContainer)
         } label: {
             Image(systemName: "hat.cap.fill")
+//            Image("menuIcon")
+
         }
         .menuBarExtraStyle(.window)
     }
