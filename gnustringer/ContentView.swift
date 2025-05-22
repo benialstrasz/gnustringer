@@ -140,7 +140,8 @@ struct ContentView: View {
                     pasteboard.setString(result, forType: .string)
                 }
                 
-                Toggle("long string", isOn: $longString)
+                Toggle("line breaks", isOn: $longString)
+                    .font(.system(.caption, design: .monospaced))
                     .toggleStyle(.checkbox)
                 
                 Spacer()
@@ -175,19 +176,22 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 
             } else {
-                ScrollView(.vertical) {
-                    Text(result)
-                        .font(.system(size: 11, design: .monospaced))
-                        .padding(.top, 4)
-                        .onTapGesture(count: 2) {
-                            showResultInTextfield.toggle()
-                        }
-                }
-                .frame(maxWidth: 350)
-                .background(result.isEmpty ? Color.clear : Color(NSColor.windowBackgroundColor))
-                .cornerRadius(10)
-                .clipped()
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(result.isEmpty ? 0.0 : 0.3)))
+//                ScrollView(.vertical) {
+                Text(result)
+                    .font(.system(size: 11, design: .monospaced))
+                    .padding(.top, 4)
+                    .onTapGesture(count: 2) {
+                        showResultInTextfield.toggle()
+                    }
+                //                }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.vertical, 2)
+                    .padding(.horizontal, 7)
+                    .background(result.isEmpty ? Color.clear : Color(NSColor.windowBackgroundColor))
+                    .cornerRadius(10)
+                    .clipped()
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(result.isEmpty ? 0.0 : 0.3)))
             }
             
             Divider()
@@ -199,6 +203,11 @@ struct ContentView: View {
 //                    .font(.caption2)
 //                    .fontWeight(.ultraLight)
 //
+                Spacer()
+                
+                Toggle("auto copy", isOn: $autoCopyOnGenerate)
+                    .toggleStyle(.checkbox)
+                    .font(.caption)
                 Spacer()
                 
                 LaunchAtLogin.Toggle()
@@ -249,8 +258,8 @@ struct ContentView: View {
         }
         
         print("GENERATED:")
-        print("plot " + parts.joined(separator: longString ? ", " : ", \\\n     "))
-        return "plot " + parts.joined(separator: longString ? ", " : ", \\\n     ")
+        print("plot " + parts.joined(separator: !longString ? ", " : ", \\\n     "))
+        return "plot " + parts.joined(separator: !longString ? ", " : ", \\\n     ")
     }
     
     private func updateRecentFile(named name: String) {

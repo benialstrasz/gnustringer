@@ -30,8 +30,8 @@ struct gnustringerApp: App {
             ContentView()
                 .modelContainer(sharedModelContainer)
         } label: {
-            Image(systemName: "hat.cap.fill")
-//            Image("menuIcon")
+//            Image(systemName: "hat.cap.fill")
+            Image("menuIcon")
 
         }
         .menuBarExtraStyle(.window)
