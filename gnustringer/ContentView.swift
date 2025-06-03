@@ -31,6 +31,10 @@ struct ContentView: View {
     @State private var styleIndex = 1
     private let styles = ["nothing", "w l", "w lp"]
     
+    @State private var loopBlocks = false
+    @State private var blockA = ""
+    @State private var blockB = ""
+    
     @State private var longString: Bool = true
     
     @State private var result = ""
@@ -38,12 +42,12 @@ struct ContentView: View {
     
     @State private var showResultInTextfield: Bool = false
     @State private var autoCopyOnGenerate: Bool = true
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image("rainbow")
-//                .resizable()
-//                .frame(height: 50)
+            //                .resizable()
+            //                .frame(height: 50)
                 .padding(.vertical,-10)
             Group {
                 HStack {
@@ -65,7 +69,7 @@ struct ContentView: View {
                             Text("🗑️ delete history 🗑️")
                                 .font(.system(.body, design: .monospaced))
                         }
-
+                        
                     } label: {
                         Text("...")
                             .font(.system(.body, design: .monospaced))
@@ -89,9 +93,9 @@ struct ContentView: View {
                         } label: {
                             Text("🗑️ delete history 🗑️")
                                 .font(.system(.body, design: .monospaced))
-
+                            
                         }
-
+                        
                     } label: {
                         Text("...")
                             .font(.system(.body, design: .monospaced))
@@ -101,16 +105,16 @@ struct ContentView: View {
             }
             
             HStack {
-                TextField("X Col", text: $xCol)
+                TextField("X Column", text: $xCol)
                 TextField("X Scale", text: $xScale)
             }
             
             HStack {
-                TextField("Y Col", text: $yCol)
+                TextField("Y Column(s)", text: $yCol)
                 TextField("Y Scale", text: $yScale)
             }
             
-            TextField("CB Col (optional)", text: $cbCol)
+            TextField("CB Column (optional)", text: $cbCol)
             
             Picker("Plot Style", selection: $styleIndex) {
                 ForEach(0..<styles.count, id: \.self) { index in
@@ -119,6 +123,20 @@ struct ContentView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(.bottom, 10)
+            
+            HStack {
+                Toggle("data blocks loop", isOn: $loopBlocks)
+                    .font(.system(.caption, design: .monospaced))
+                    .toggleStyle(.checkbox)
+                Spacer()
+                TextField("first block", text: $blockA)
+                    .frame(width: 100)
+                    .disabled(!loopBlocks)
+                TextField("last block", text: $blockB)
+                    .frame(width: 100)
+                    .disabled(!loopBlocks)
+
+            }
             
             HStack() {
                 Spacer()
@@ -176,7 +194,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 
             } else {
-//                ScrollView(.vertical) {
+                //                ScrollView(.vertical) {
                 Text(result)
                     .font(.system(size: 11, design: .monospaced))
                     .padding(.top, 4)
@@ -199,10 +217,10 @@ struct ContentView: View {
             HStack {
                 Text("🪐 made by Beni")
                     .font(.system(.caption, design: .monospaced))
-//                Text("(v" + currentVersion + ")")
-//                    .font(.caption2)
-//                    .fontWeight(.ultraLight)
-//
+                //                Text("(v" + currentVersion + ")")
+                //                    .font(.caption2)
+                //                    .fontWeight(.ultraLight)
+                //
                 Spacer()
                 
                 Toggle("auto copy", isOn: $autoCopyOnGenerate)
@@ -212,8 +230,8 @@ struct ContentView: View {
                 
                 LaunchAtLogin.Toggle()
                     .font(.system(.caption, design: .monospaced))
-
-
+                
+                
                 Button {
                     NSApplication.shared.terminate(nil)
                 } label: {
@@ -224,7 +242,7 @@ struct ContentView: View {
                 .keyboardShortcut("q")
             }
             .padding(.bottom, -8)
-
+            
         }
         .font(.system(.body, design: .monospaced))
         .padding()
@@ -232,13 +250,15 @@ struct ContentView: View {
     }
     
     func generateGnuplotCommand() -> String {
-        let dirs = directories.split(separator: " ").map(String.init)
-        
+        var dirs = directories.split(separator: " ").map(String.init)
+        if dirs.isEmpty { dirs = [""] }
         // Fallback to 1.0 if empty or invalid
         let xS = Double(xScale.trimmingCharacters(in: .whitespaces)).flatMap { $0 != 0 ? $0 : nil } ?? 1.0
         let yS = Double(yScale.trimmingCharacters(in: .whitespaces)).flatMap { $0 != 0 ? $0 : nil } ?? 1.0
         
-        guard let x = Int(xCol), let y = Int(yCol) else {
+        let yColumns = yCol.split(separator: " ").compactMap { Int($0) }
+        
+        guard let x = Int(xCol) else {
             return "Invalid numeric input."
         }
         
@@ -246,20 +266,29 @@ struct ContentView: View {
         let baseArgs = styles[styleIndex]
         let args = baseArgs + (hasCB && baseArgs != "nothing" ? " pal" : "")
         
-        let parts = dirs.map { dir in
-            let file = "\(dir)/\(fileName)"
-            
-            let xString = (xS == 1) ? "\(x)" : "($\(x)/\(xS))"
-            let yString = (yS == 1) ? "\(y)" : "($\(y)/\(yS))"
-            let cbString = hasCB ? ":\(cbCol)" : ""
-            
-            let withClause = baseArgs == "nothing" ? "" : args
-            return "\"\(file)\" u \(xString):\(yString)\(cbString) \(withClause)".trimmingCharacters(in: .whitespaces)
+        var parts: [String] = []
+        
+        for dir in dirs {
+
+            let file = (dir == "") ? "\(fileName)" : "\(dir)/\(fileName)"
+
+            for (index, y) in yColumns.enumerated() {
+                let xString = (xS == 1) ? "\(x)" : "($\(x)/\(xS))"
+                let yString = (yS == 1) ? "\(y)" : "($\(y)/\(yS))"
+                let cbString = hasCB ? ":\(cbCol)" : ""
+                let filePart = index == 0 ? "\"\(file)\"" : "\"\""
+                let withClause = baseArgs == "nothing" ? "" : args
+                let indexi = loopBlocks ? "index i " : ""
+                parts.append("\(filePart) \(indexi)u \(xString):\(yString)\(cbString) \(withClause)".trimmingCharacters(in: .whitespaces))
+            }
         }
         
-        print("GENERATED:")
-        print("plot " + parts.joined(separator: !longString ? ", " : ", \\\n     "))
-        return "plot " + parts.joined(separator: !longString ? ", " : ", \\\n     ")
+        //        return "plot " + parts.joined(separator: !longString ? ", " : ", \\\n     ")
+        
+        let forLoop = loopBlocks ? "for [i=\(blockA):\(blockB)] " : ""
+
+        let joined = parts.joined(separator: !longString ? ", " : ", \\\n     ")
+        return "plot " + forLoop + joined
     }
     
     private func updateRecentFile(named name: String) {
@@ -315,7 +344,6 @@ struct ContentView: View {
             print("Failed to clear history: \(error)")
         }
     }
-
     
 }
 
